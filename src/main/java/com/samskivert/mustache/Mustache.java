@@ -4,6 +4,8 @@
 
 package com.samskivert.mustache;
 
+import org.json.JSONArray;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -482,8 +484,9 @@ public class Mustache
         @Override public void execute (Template tmpl, Template.Context ctx, Writer out)  {
             Object value = tmpl.getValueOrDefault(ctx, _name, _line);
             if (value == null) {
-                throw new MustacheException(
-                    "No key, method or field with name '" + _name + "' on line " + _line);
+//                throw new MustacheException(
+//                    "No key, method or field with name '" + _name + "' on line " + _line);
+                return;
             }
             String text = String.valueOf(value);
             write(out, _escapeHTML ? escapeHTML(text) : text);
@@ -536,6 +539,13 @@ public class Mustache
                     Template.Mode mode = (ii == 0) ? Template.Mode.FIRST :
                         ((ii == ll-1) ? Template.Mode.LAST : Template.Mode.OTHER);
                     executeSegs(tmpl, ctx.nest(Array.get(value, ii), ii+1, mode), out);
+                }
+            } else if (JSONArray.class.isAssignableFrom(value.getClass())) {
+                JSONArray jsonArray = (JSONArray)value;
+                for (int ii = 0, ll = jsonArray.length(); ii < ll; ii++) {
+                    Template.Mode mode = (ii == 0) ? Template.Mode.FIRST :
+                        ((ii == ll-1) ? Template.Mode.LAST : Template.Mode.OTHER);
+                    executeSegs(tmpl, ctx.nest(jsonArray.opt(ii), ii+1, mode), out);
                 }
             } else {
                 executeSegs(tmpl, ctx.nest(value, 0, Template.Mode.OTHER), out);

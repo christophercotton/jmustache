@@ -4,6 +4,8 @@
 
 package com.samskivert.mustache;
 
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -12,6 +14,7 @@ import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 /**
  * Represents a compiled template. Templates are executed with a <em>context</em> to generate
@@ -80,8 +83,8 @@ public class Template
         if (!_compiler.standardsMode) {
             // if we're dealing with a compound key, resolve each component and use the result to
             // resolve the subsequent component and so forth
-            if (name != DOT_NAME && name.indexOf(DOT_NAME) != -1) {
-                String[] comps = name.split("\\.");
+            if (name != DOT_NAME && name.indexOf(PATH_SEPARATOR_NAME) != -1) {
+                String[] comps = name.split(Pattern.quote(PATH_SEPARATOR_NAME));
                 // we want to allow the first component of a compound key to be located in a parent
                 // context, but once we're selecting sub-components, they must only be resolved in the
                 // object that represents that component
@@ -186,6 +189,10 @@ public class Template
 
         if (Map.class.isAssignableFrom(key.cclass)) {
             return MAP_FETCHER;
+        }
+
+        if (JSONObject.class.isAssignableFrom(key.cclass)) {
+            return JSON_FETCHER;
         }
 
         final Method m = getMethod(key.cclass, key.name);
@@ -329,6 +336,13 @@ public class Template
         }
     };
 
+    protected static final VariableFetcher JSON_FETCHER = new VariableFetcher() {
+        public Object get (Object ctx, String name) throws Exception {
+            return ((JSONObject)ctx).opt(name);
+        }
+    };
+
+
     protected static final VariableFetcher THIS_FETCHER = new VariableFetcher() {
         public Object get (Object ctx, String name) throws Exception {
             return ctx;
@@ -336,6 +350,7 @@ public class Template
     };
 
     protected static final String DOT_NAME = ".".intern();
+    protected static final String PATH_SEPARATOR_NAME = "/".intern();
     protected static final String THIS_NAME = "this".intern();
     protected static final String FIRST_NAME = "-first".intern();
     protected static final String LAST_NAME = "-last".intern();
